@@ -62,17 +62,17 @@ class PhySL:
     def _Num(self, a):
         return str(a.n)
 
-    def _Str(self, a):
+    def _Str(self, a, allowreturn=False):
         return '"' + a.s + '"'
 
     def _Name(self, a):
         return full_node_name(a, a.id)
 
-    def _Expr(self, a):
+    def _Expr(self, a, allowreturn=False):
         args = [arg for arg in ast.iter_child_nodes(a)]
         s = ""
         if len(args) == 1:
-            s += self.recompile(args[0])
+            s += self.recompile(args[0],allowreturn)
         else:
             raise Exception(
                 'unexpected: expression has more than one sub-expression')
@@ -154,8 +154,6 @@ class PhySL:
                 if i + 1 == len(sargs):
                     s += self.recompile(aa, True)
                 else:
-                    print("=" * 50)
-                    dump_info(aa)
                     s += self.recompile(aa, False)
                     s += ", "
             s += ")"
@@ -195,7 +193,7 @@ class PhySL:
             s += term1 + op + term2
         return s
 
-    def _Call(self, a):
+    def _Call(self, a, allowreturn=False):
         args = [arg for arg in ast.iter_child_nodes(a)]
         if args[0].id == "print":
             args[0].id = "cout"
@@ -203,7 +201,7 @@ class PhySL:
         for n in range(1, len(args)):
             if n > 1:
                 s += ', '
-            s += self.recompile(args[n])
+            s += self.recompile(args[n],allowreturn)
         s += ')'
         return s
 
@@ -335,6 +333,7 @@ class PhySL:
         n = get_node(a, name="Name", num=0)
         c = get_node(a, name="Call", num=1)
         l = get_node(a, name="List", num=1)
+        n2 = get_node(a, name="Name", num=1)
         if n is not None and c is not None:
             r = get_node(c, name="Name", num=0)
             assert r.id == "range" or r.id == "xrange"
@@ -383,7 +382,30 @@ class PhySL:
                 ret += "for(" + sd + "(" + ns + "," + ls + ")," + ns + " > " + us + \
                     ",store(" + ns + "," + ns + "+" + ss + ")," + bs + "))"
                 return ret
-        #elif n is not None and c is not None:
+        elif n is not None and l is not None:
+            nm = get_node(a,num=0,name="Name")
+            args = [arg for arg in ast.iter_child_nodes(l)]
+            ret = 'block('
+            for i in range(len(args)):
+                if args[i].__class__.__name__ == "Load":
+                    break
+                else:
+                    if i > 0:
+                        ret += ','
+                    ret += "store("+nm.id+","+self.recompile(args[i])+"),"
+                    ret += self.recompile(a.body[0])
+            ret += ')'
+            return ret
+        elif n is not None and n2 is not None:
+            # yyy
+            dump_info(a)
+            nm = get_node(a,num=0,name="Name")
+            nm2 = get_node(a,num=1,name="Name")
+            ret = 'for(store(_floop_iter_,0),_floop_iter_ < 3,block(store(_floop_iter_,_floop_iter_+1),store('+nm.id+',get_list('+nm2.id+',_floop_iter_))),'
+            ret += self.recompile(a.body[0])
+            ret += ")"
+            return ret
+        dump_info(a)
         raise Exception("unsupported For loop structure")
 
     def recompile(self, a, allowreturn=False):
