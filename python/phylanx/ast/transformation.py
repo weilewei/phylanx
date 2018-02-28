@@ -150,9 +150,12 @@ class PhySL:
             sargs = args[1:]
             for i in range(len(sargs)):
                 aa = sargs[i]
+                assert aa != None
                 if i + 1 == len(sargs):
                     s += self.recompile(aa, True)
                 else:
+                    print("=" * 50)
+                    dump_info(aa)
                     s += self.recompile(aa, False)
                     s += ", "
             s += ")"
@@ -316,9 +319,22 @@ class PhySL:
         else:
             raise Exception(nm2)
 
+    def _List(self,a):
+        s = "make_list("
+        sep = ""
+        for arg in ast.iter_child_nodes(a):
+            if arg.__class__.__name__ == "Load":
+                break
+            s += sep
+            s += self.recompile(arg)
+            sep = ","
+        s += ")"
+        return s
+
     def _For(self, a):
         n = get_node(a, name="Name", num=0)
         c = get_node(a, name="Call", num=1)
+        l = get_node(a, name="List", num=1)
         if n is not None and c is not None:
             r = get_node(c, name="Name", num=0)
             assert r.id == "range" or r.id == "xrange"
@@ -367,7 +383,8 @@ class PhySL:
                 ret += "for(" + sd + "(" + ns + "," + ls + ")," + ns + " > " + us + \
                     ",store(" + ns + "," + ns + "+" + ss + ")," + bs + "))"
                 return ret
-            raise Exception("unsupported For loop structure")
+        #elif n is not None and c is not None:
+        raise Exception("unsupported For loop structure")
 
     def recompile(self, a, allowreturn=False):
         nm = a.__class__.__name__
@@ -396,6 +413,7 @@ class PhySL:
         "If": _If,
         "Compare": _Compare,
         "UnaryOp": _UnaryOp,
+        "List" : _List,
         "For": _For
     }
 
