@@ -466,6 +466,15 @@ expression_compiler(std::string xexpr, pybind11::args args)
 
                 return x(std::move(fargs));
             }
+            catch (hpx::exception const& ex)
+            {
+                std::ostringstream msg;
+                auto file = hpx::get_error_file_name(ex);
+                auto line = hpx::get_error_line_number(ex);
+                msg << ex.what() << " file=" << file << " line=" << line << std::endl;
+                std::string s = msg.str();
+                PyErr_SetString(PyExc_RuntimeError, s.c_str());
+            }
             catch (std::exception const& ex)
             {
                 PyErr_SetString(PyExc_RuntimeError, ex.what());

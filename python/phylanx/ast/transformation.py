@@ -13,6 +13,7 @@ from .utils import *
 
 et = phylanx.execution_tree
 
+floop_num = 1
 
 def get_node(node, **kwargs):
     if node is None:
@@ -401,7 +402,11 @@ class PhySL:
             dump_info(a)
             nm = get_node(a,num=0,name="Name")
             nm2 = get_node(a,num=1,name="Name")
-            ret = 'for(store(_floop_iter_,0),_floop_iter_ < 3,block(store(_floop_iter_,_floop_iter_+1),store('+nm.id+',get_list('+nm2.id+',_floop_iter_))),'
+            global floop_num
+            floop_name = '_floop_iter%d_' % floop_num
+            floop_num += 1
+            ret = 'for(define(_floop_iter_,-1),_floop_iter_ < shape('+nm2.id+'),block(store(_floop_iter_,_floop_iter_+1),store('+nm.id+',get_list('+nm2.id+',_floop_iter_))),'
+            ret = re.sub(r'\b_floop_iter_\b',floop_name,ret)
             ret += self.recompile(a.body[0])
             ret += ")"
             return ret

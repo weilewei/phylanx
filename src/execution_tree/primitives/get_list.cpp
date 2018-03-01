@@ -24,6 +24,17 @@
 namespace phylanx { namespace execution_tree { namespace primitives
 {
     ///////////////////////////////////////////////////////////////////////////
+    std::int64_t get_int(primitive_argument_type const& p) {
+        switch(p.index()) {
+            case 2:
+                return util::get<2>(p);
+            case 4:
+                return (std::int64_t)util::get<4>(p)[0];
+            default:
+                ;
+        }
+        return 0;
+    }
     primitive create_get_list(hpx::id_type const& locality,
         std::vector<primitive_argument_type>&& operands,
         std::string const& name, std::string const& codename)
@@ -59,9 +70,26 @@ namespace phylanx { namespace execution_tree { namespace primitives
             [this_](std::vector<primitive_argument_type> && args)
             ->  primitive_argument_type
             {
-                auto n = util::get<2>(args[1]);
-                auto value = (util::get<7>(args[0]).get())[n];
-                return primitive_argument_type{std::move(value)};
+                if(args.size()==2) {
+                    if(args[1].index() == 2 && args[0].index() == 7) {
+                        auto n = util::get<2>(args[1]);
+                        auto value = (util::get<7>(args[0]).get())[n];
+                        return primitive_argument_type{std::move(value)};
+                    } else if(args[1].index() == 4 && args[0].index() == 7) {
+                        int n = (int)(util::get<4>(args[1])[0]);
+                        auto value = (util::get<7>(args[0]).get())[n];
+                        return primitive_argument_type{std::move(value)};
+                    } else if(args[1].index() == 2 && args[0].index() == 4) {
+                        auto n = util::get<2>(args[1]);
+                        auto value = (util::get<4>(args[0]))[n];
+                        return primitive_argument_type{std::move(value)};
+                    } else if(args[1].index() == 4 && args[0].index() == 4) {
+                        int n = (int)(util::get<4>(args[1])[0]);
+                        auto value = (util::get<4>(args[0]))[n];
+                        return primitive_argument_type{std::move(value)};
+                    }
+                }
+                return 0;
             }),
             detail::map_operands(
                 operands, functional::value_operand{}, args,

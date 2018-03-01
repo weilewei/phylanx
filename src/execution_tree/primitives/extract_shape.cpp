@@ -55,6 +55,7 @@ namespace phylanx { namespace execution_tree { namespace primitives
         protected:
             using arg_type = ir::node_data<double>;
             using args_type = std::vector<arg_type>;
+            using list_type = phylanx::util::recursive_wrapper<std::vector<primitive_argument_type>>;
 
             primitive_argument_type shape0d(args_type&& args) const
             {
@@ -127,8 +128,24 @@ namespace phylanx { namespace execution_tree { namespace primitives
                                 "valid",
                             name, codename));
                 }
-
                 auto this_ = this->shared_from_this();
+
+                if(operands.size()>0 && operands[0].index() == 5) {
+                    primitive p = util::get<5>(operands[0]);
+                    return hpx::dataflow(hpx::util::unwrapping(
+                        [this_](primitive_argument_type && list) -> primitive_argument_type
+                        {
+                            if(list.index()==7) {
+                                return primitive_argument_type{
+                                    std::int64_t(
+                                        util::get<7>(list).get().size())};
+                            } else {
+                                return primitive_argument_type{
+                                    std::int64_t(0)};
+                            }
+                        }),p.eval());
+                }
+
                 return hpx::dataflow(hpx::util::unwrapping(
                     [this_](args_type && args) -> primitive_argument_type
                     {
