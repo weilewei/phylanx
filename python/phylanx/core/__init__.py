@@ -8,8 +8,8 @@ import sys
 import platform
 
 
-PHYLANX_INSTALL_PATH = '@PHYLANX_INSTALL_PATH@'
-HPX_INSTALL_PATH = '@HPX_INSTALL_PATH@'
+PHYLANX_INSTALL_PATH = 'C:\\Users\\rod\\src\\repos\\phylanx\\build'
+HPX_INSTALL_PATH = 'C:\\Users\\rod\\src\\repos\\hpx\\cmake-build-debug'
 
 sys.path.append(os.path.dirname(__file__))
 pathenv = os.environ['PATH']

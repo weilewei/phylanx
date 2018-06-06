@@ -5,18 +5,109 @@
 # Distributed under the Boost Software License, Version 1.0. (See accompanying
 # file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-import ast
 import re
-import phylanx
+import ast
 import inspect
-from phylanx.exceptions import InvalidDecoratorArgumentError
-from phylanx.util import prange
-from .oscop import OpenSCoP
-from .utils import full_name, full_node_name, physl_fmt
+import phylanx.execution_tree
+from phylanx import compiler_state
 
-et = phylanx.execution_tree
 
-# globals used during the compilation
+def physl_fmt(src, tag=4):
+    """Pretty print PhySL source code"""
+    # Remove line number info
+    src = re.sub(r'\$\d+', '', src)
+
+    # The regex below matches one of the following three
+    # things in order of priority:
+    # 1: a quoted string, with possible \" or \\ embedded
+    # 2: a set of balanced parenthesis
+    # 3: a single character
+    pat = re.compile(r'"(?:\\.|[^"\\])*"|\([^()]*\)|.')
+    indent = 0
+    tab = 4
+    for s in re.findall(pat, src):
+        if s in " \t\r\b\n":
+            pass
+        elif s == '(':
+            print(s)
+            indent += 1
+            print(" " * indent * tab, end="")
+        elif s == ')':
+            indent -= 1
+            print("", sep="")
+            print(" " * indent * tab, end="")
+            print(s, end="")
+        elif s == ',':
+            print(s)
+            print(" " * indent * tab, end="")
+        else:
+            print(s, end="", sep="")
+    print("", sep="")
+
+
+def dump_info(a, depth=0):
+    "Print detailed information about an AST"
+    nm = a.__class__.__name__
+    print("  " * depth, end="")
+    iter_children = True
+    if nm == "Num":
+        if type(a.n) == int:
+            print("%s=%d" % (nm, a.n))
+        else:
+            print("%s=%f" % (nm, a.n))
+    elif nm == "Global":
+        print("Global:", dir(a))
+    elif nm == "Str":
+        print("%s='%s'" % (nm, a.s))
+    elif nm == "Name":
+        print("%s='%s'" % (nm, a.id))
+    elif nm == "arg":
+        print("%s='%s'" % (nm, a.arg))
+    elif nm == "Slice":
+        print("Slice:")
+        print("  " * depth, end="")
+        print("  Upper:")
+        if a.upper is not None:
+            dump_info(a.upper, depth + 4)
+        print("  " * depth, end="")
+        print("  Lower:")
+        if a.lower is not None:
+            dump_info(a.lower, depth + 4)
+        print("  " * depth, end="")
+        print("  Step:")
+        if a.step is not None:
+            dump_info(a.step, depth + 4)
+    elif nm == "If":
+        iter_children = False
+        print(nm)
+        dump_info(a.test, depth)
+        for n in a.body:
+            dump_info(n, depth + 1)
+        if len(a.orelse) > 0:
+            print("  " * depth, end="")
+            print("Else")
+            for n in a.orelse:
+                dump_info(n, depth + 1)
+    else:
+        print(nm)
+    for (f, v) in ast.iter_fields(a):
+        if type(f) == str and type(v) == str:
+            print("%s:attr[%s]=%s" % ("  " * (depth + 1), f, v))
+    if iter_children:
+        for n in ast.iter_child_nodes(a):
+            dump_info(n, depth + 1)
+
+
+def print_physl(physl_src):
+    print(re.sub(r'\$\d+', '', physl_src))
+
+
+def full_node_name(a, name=''):
+    return '%s$%d$%d' % (name, a.lineno, a.col_offset)
+
+
+def full_name(a):
+    return full_node_name(a, a.name)
 
 
 def is_node(node, name):
@@ -64,14 +155,33 @@ def remove_line(a):
 
 
 class PhySL:
-    def __init__(self, tree, kwargs):
+    compiler_state = None
+
+    def __init__(self, func, tree, kwargs):
         self.defs = {}
         self.priority = 0
+        self.wrapped_function = func
         self.fglobals = kwargs['fglobals']
         self.groupAggressively = True
         for arg in tree.body[0].args.args:
             self.defs[arg.arg] = 1
         self.__src__ = self.recompile(tree)
+
+        if kwargs.get("debug"):
+            physl_fmt(self.__src__)
+            print(end="", flush="")
+
+        if "compiler_state" in kwargs:
+            PhySL.compiler_state = kwargs['compiler_state']
+        elif PhySL.compiler_state is None:
+            PhySL.compiler_state = compiler_state()
+
+        phylanx.execution_tree.compile(self.__src__, PhySL.compiler_state)
+
+    def call(self, args):
+        nargs = tuple(convert_to_phylanx_type(a) for a in args)
+        fname = self.wrapped_function.__name__
+        return phylanx.execution_tree.eval(fname, PhySL.compiler_state, *nargs)
 
     def _Arguments(self, a, allowreturn=False):
         ret = ''
@@ -152,8 +262,9 @@ class PhySL:
             s += self.recompile(a.dims[1])
         return s
 
-# NOTE
-# this function returns comma separated entries of the tuple without the parentheses.
+    # NOTE
+    # this function returns comma separated entries of the tuple without the
+    # parentheses.
 
     def _Tuple(self, a, allowreturn=False):
         s = ''
@@ -346,10 +457,12 @@ class PhySL:
                 s += self.recompile(args[1])
                 s += ")"
             else:
-                raise Exception("Unsupported slicing in assignment: line=%d" % a.lineno)
+                raise Exception(
+                    "Unsupported slicing in assignment: line=%d" % a.lineno)
             return s
         else:
-            raise Exception("Unsupported slicing in assignment: line=%d" % a.lineno)
+            raise Exception(
+                "Unsupported slicing in assignment: line=%d" % a.lineno)
         return s
 
     def _Attribute(self, a, allowreturn=False):
@@ -377,7 +490,8 @@ class PhySL:
                 # module "np" contains "shape"
                 return s
             else:
-                raise LookupError("Undefined function: %s.%s()" % (a.value.id, a.attr))
+                raise LookupError("Undefined function: %s.%s()" % (a.value.id,
+                                                                   a.attr))
         else:
             s += self.recompile(a.value)
             return s
@@ -493,13 +607,8 @@ class PhySL:
                 return "-(" + self.recompile(args[1]) + ")"
             else:
                 return "-" + self.recompile(args[1])
-        elif nm2 == "Not":
-            if self.groupAggressively:
-                return "!(" + self.recompile(args[1]) + ")"
-            else:
-                return "!" + self.recompile(args[1])
         else:
-            raise Exception('unary operation not supported: %s' % nm2)
+            raise Exception(nm2)
 
     def _For(self, a, allowreturn=False):
         symbol_info = full_node_name(a)
@@ -509,7 +618,8 @@ class PhySL:
 
         if is_node(a.iter, 'Call'):
             if func_nom == 'prange':
-                ret = "parallel_map%s(lambda%s(" % (symbol_info, func_nom_symbol_info)
+                ret = "parallel_map%s(lambda%s(" % (symbol_info,
+                                                    func_nom_symbol_info)
             else:
                 ret = "map%s(lambda%s(" % (symbol_info, func_nom_symbol_info)
         else:
@@ -603,73 +713,3 @@ def convert_to_phylanx_type(v):
     except NotImplementedError:
         pass
     return v
-
-
-cs = phylanx.compiler_state()
-
-
-# Create the decorator
-def Phylanx(arg=None, target="PhySL", compiler_state=cs, **kwargs):
-    class PhyTransformer(object):
-        targets = {"PhySL": PhySL, "OpenSCoP": OpenSCoP}
-
-        def __init__(self, f):
-            kwargs['fglobals'] = f.__globals__
-
-            if "debug" in kwargs:
-                self.debug = kwargs['debug']
-            else:
-                self.debug = False
-
-            if target not in self.targets:
-                raise NotImplementedError(
-                    "unknown target passed to '@Phylanx()' decorator: %s." %
-                    target)
-
-            self.f = f
-            self.cs = compiler_state
-            self.target = target
-
-            # Get the source code
-            actual_lineno = inspect.getsourcelines(f)[-1]
-            src = inspect.getsource(f)
-
-            # Before recompiling the code, take
-            # off the decorator from the source.
-            src = re.sub(r'^\s*@\w+.*\n', '', src)
-
-            # Strip off indentation if the function
-            # is not defined at top level.
-            src = re.sub(r'^\s*', '', src)
-
-            # Create the AST
-            tree = ast.parse(src)
-            ast.increment_lineno(tree, actual_lineno)
-            assert len(tree.body) == 1
-            self.transformation = self.targets[target](tree, kwargs)
-            self.__src__ = self.transformation.__src__
-            if self.debug:
-                physl_fmt(self.__src__)
-                print(end="", flush="")
-
-            if target == "PhySL":
-                et.compile(self.__src__, self.cs)
-
-        def __call__(self, *args):
-            if target == "OpenSCoP":
-                raise NotImplementedError(
-                    "OpenSCoP kernel blocks are not yet callable.")
-            nargs = tuple(convert_to_phylanx_type(a) for a in args)
-            return et.eval(self.f.__name__, self.cs, *nargs)
-
-        def generate_ast(self):
-            return phylanx.ast.generate_ast(self.__src__)
-
-    if callable(arg):
-        return PhyTransformer(arg)
-    elif arg is not None:
-        raise InvalidDecoratorArgumentError
-    else:
-        return PhyTransformer
-
-    return PhyTransformer
