@@ -3,9 +3,9 @@
 #  Distributed under the Boost Software License, Version 1.0. (See accompanying
 #  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 import numpy as np
+from phylanx import Phylanx, PhylanxSession
 
-import phylanx
-from phylanx.ast import Phylanx
+PhylanxSession(1)
 
 np_x = np.array([1, 2, 3])
 np_y = np.array([4, 5, 6])
@@ -81,11 +81,13 @@ assert (np_exp(np_array) == np.exp(np_array)).all
 assert np_exp.__src__ == \
     'define$76$0(np_exp$76$0, x$76$11, exp$77$11(x$77$18))'
 
-# @Phylanx
-# def np_hstack(x, y):
-#     return np.hstack((x, y))
-#
-# assert (np_hstack(np_x, np_y) == np.hstack((np_x, np_y))).all
+
+@Phylanx
+def np_hstack(x, y):
+    return np.hstack((x, y))
+
+
+assert (np_hstack(np_x, np_y) == np.hstack((np_x, np_y))).all
 
 
 @Phylanx
@@ -95,15 +97,17 @@ def np_identity(x):
 
 assert (np_identity(3) == np.identity(3)).all
 assert np_identity.__src__ == \
-    'define$92$0(np_identity$92$0, x$92$16, identity$93$11(x$93$23))'
+    'define$94$0(np_identity$94$0, x$94$16, identity$95$11(x$95$23))'
 
-# TODO
-# np.inverse = np.linalg.inv
-# @Phylanx
-# def np_inverse(x):
-#     return np.inverse(x)
-#
-# assert (np_inverse(np_array) == np.inverse(np_array)).all
+np.inverse = np.linalg.inv
+
+
+@Phylanx
+def np_inverse(x):
+    return np.inverse(x)
+
+
+assert (np_inverse(np_array) == np.inverse(np_array)).all
 
 # @Phylanx
 # def np_linearmatrix():
@@ -119,7 +123,7 @@ def np_linspace(start, stop, steps):
 
 assert (np_linspace(2, 3, 5) == np.linspace(2, 3, 5)).all
 assert np_linspace.__src__ == \
-    'define$116$0(np_linspace$116$0, start$116$16, stop$116$23, steps$116$29, linspace$117$11(2, 3, 5))' # noqa E501
+    'define$120$0(np_linspace$120$0, start$120$16, stop$120$23, steps$120$29, linspace$121$11(2, 3, 5))' # noqa E501
 
 
 @Phylanx
@@ -129,7 +133,7 @@ def np_power(x, p):
 
 assert (np_power(np_array, 2) == np.power(np_array, 2)).all
 assert np_power.__src__ == \
-    'define$126$0(np_power$126$0, x$126$13, p$126$16, power$127$11(x$127$20, 2))'
+    'define$130$0(np_power$130$0, x$130$13, p$130$16, power$131$11(x$131$20, 2))'
 
 # TODO
 # @Phylanx
@@ -156,7 +160,7 @@ def np_slice_01(x):
 
 assert (np_slice_01(arr) == arr[1:4]).all
 assert np_slice_01.__src__ == \
-    "define$153$0(np_slice_01$153$0, x$153$16, slice$154$11(x$154$11,make_list(1, 4)))"
+    "define$157$0(np_slice_01$157$0, x$157$16, slice$158$11(x$158$11,make_list(1, 4)))"
 
 a = np.array([1, 4, 9])
 
@@ -168,7 +172,7 @@ def np_sqrt(x):
 
 assert (np_sqrt(a) == np.sqrt(a)).all
 assert np_sqrt.__src__ == \
-    'define$165$0(np_sqrt$165$0, x$165$12, square_root$166$11(x$166$19))'
+    'define$169$0(np_sqrt$169$0, x$169$12, square_root$170$11(x$170$19))'
 
 
 @Phylanx
@@ -179,10 +183,12 @@ def np_transpose(x):
 
 assert (np_transpose(np_array) == np.transpose(np_array)).all
 assert np_transpose.__src__ == \
-    'define$175$0(np_transpose$175$0, x$175$17, block$175$0(define$176$4(transx$176$4, transpose$176$13(x$176$26)), transx$177$11))' # noqa E501
+    'define$179$0(np_transpose$179$0, x$179$17, block$179$0(define$180$4(transx$180$4, transpose$180$13(x$180$26)), transx$181$11))' # noqa E501
 
-# @Phylanx
-# def np_vstack(np_x, np_y):
-#     return np.vstack((np_x, np_y))
-#
-# assert (np_vstack(np_x, np_y) == np.vstack((np_x, np_y))).all
+
+@Phylanx
+def np_vstack(np_x, np_y):
+    return np.vstack((np_x, np_y))
+
+
+assert (np_vstack(np_x, np_y) == np.vstack((np_x, np_y))).all

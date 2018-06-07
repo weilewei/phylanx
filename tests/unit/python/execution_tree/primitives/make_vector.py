@@ -3,9 +3,12 @@
 #  Distributed under the Boost Software License, Version 1.0. (See accompanying
 #  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-import phylanx
-from phylanx.ast import *
+# flake8: noqa
+
 import numpy as np
+from phylanx import Phylanx, PhylanxSession
+
+PhylanxSession(1)
 
 
 @Phylanx

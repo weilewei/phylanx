@@ -7,7 +7,10 @@
 
 import phylanx
 from phylanx import execution_tree as et
-from phylanx.ast import Phylanx
+from phylanx import Phylanx, PhylanxSession
+
+PhylanxSession(1)
+
 
 cs = phylanx.compiler_state()
 
@@ -26,6 +29,3 @@ et.compile(src_mul2, cs)
 @Phylanx(compiler_state=cs)
 def foo(n):
     return mul2(n)  # noqa: F821
-
-
-print(foo(3))

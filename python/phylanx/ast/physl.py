@@ -154,6 +154,17 @@ def remove_line(a):
     return re.sub(r'\$.*', '', a)
 
 
+def convert_to_phylanx_type(v):
+    t = type(v)
+    try:
+        import numpy
+        if t == numpy.ndarray:
+            return phylanx.execution_tree.var(v)
+    except NotImplementedError:
+        pass
+    return v
+
+
 class PhySL:
     compiler_state = None
 
@@ -607,8 +618,13 @@ class PhySL:
                 return "-(" + self.recompile(args[1]) + ")"
             else:
                 return "-" + self.recompile(args[1])
+        elif nm2 == "Not":
+            if self.groupAggressively:
+                return "!(" + self.recompile(args[1]) + ")"
+            else:
+                return "!" + self.recompile(args[1])
         else:
-            raise Exception(nm2)
+            raise Exception('unary operation not supported: %s' % nm2)
 
     def _For(self, a, allowreturn=False):
         symbol_info = full_node_name(a)
@@ -702,14 +718,3 @@ class PhySL:
         "vstack": "vstack",
         # slicing operations
     }
-
-
-def convert_to_phylanx_type(v):
-    t = type(v)
-    try:
-        import numpy
-        if t == numpy.ndarray:
-            return et.var(v)
-    except NotImplementedError:
-        pass
-    return v

@@ -6,9 +6,10 @@
 #  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 import phylanx
-from phylanx.ast import Phylanx
 import numpy as np
+from phylanx import Phylanx, PhylanxSession
 
+PhylanxSession(1)
 et = phylanx.execution_tree
 cs = phylanx.compiler_state()
 
@@ -47,7 +48,7 @@ def fib(n):
 
 
 assert fib.__src__ == \
-    'define$42$0(fib$42$0, n$42$8, if$43$4((n$43$7 < 2), n$44$15, (fib$46$15((n$46$19 - 1)) + fib$46$28((n$46$32 - 2)))))'  # noqa E501
+    'define$43$0(fib$43$0, n$43$8, if$44$4((n$44$7 < 2), n$45$15, (fib$47$15((n$47$19 - 1)) + fib$47$28((n$47$32 - 2)))))'  # noqa E501
 assert "[" + fib.__src__ + "]" == str(fib.generate_ast())
 assert fib(10) == 55.0
 
@@ -58,7 +59,7 @@ def pass_str(a):
 
 
 assert pass_str.__src__ == \
-    'define$56$0(pass_str$56$0, a$56$13, a$57$11)'
+    'define$57$0(pass_str$57$0, a$57$13, a$58$11)'
 assert "[" + pass_str.__src__ + "]" == str(pass_str.generate_ast())
 assert "foo" == str(pass_str("foo"))
 
@@ -192,7 +193,6 @@ def f7(b):
 
 
 assert np.all(f7(np_b) == np.array(b[0, 0:2]))
-
 
 # @Phylanx(debug=True)
 # def f8():

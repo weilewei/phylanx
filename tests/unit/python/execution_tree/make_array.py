@@ -4,8 +4,12 @@
 #
 #  Distributed under the Boost Software License, Version 1.0. (See accompanying
 #  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
-import phylanx
+
 import numpy as np
+import phylanx.execution_tree
+from phylanx import Phylanx, PhylanxSession
+
+PhylanxSession(1)
 
 # Create a vector
 x0 = 0

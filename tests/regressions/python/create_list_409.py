@@ -5,8 +5,9 @@
 
 # Fixing #409: Cannot create lists of arbitrary objects
 
-import phylanx
-from phylanx.ast import Phylanx
+from phylanx import Phylanx, PhylanxSession
+
+PhylanxSession(1)
 
 
 @Phylanx()
@@ -15,4 +16,4 @@ def f():
 
 
 assert f.__src__ == \
-    "define$13$0(f$13$0, make_list$14$11(1,make_list$14$15(1)))"
+    "define$14$0(f$14$0, make_list$15$11(1,make_list$15$15(1)))"

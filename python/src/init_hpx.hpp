@@ -8,7 +8,9 @@
 #if !defined(PHYLANX_INIT_HPX_HPP)
 #define PHYLANX_INIT_HPX_HPP
 
-#include<vector>
+#include <vector>
+#include <string>
+
 ///////////////////////////////////////////////////////////////////////////////
 namespace phylanx { namespace bindings
 {

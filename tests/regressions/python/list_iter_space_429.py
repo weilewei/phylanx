@@ -5,8 +5,9 @@
 
 # Fixing #429: Cannot iterate over Python lists
 
-import phylanx
-from phylanx.ast import *
+from phylanx import Phylanx, PhylanxSession
+
+PhylanxSession(1)
 
 
 @Phylanx

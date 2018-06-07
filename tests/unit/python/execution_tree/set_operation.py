@@ -3,8 +3,10 @@
 # Distributed under the Boost Software License, Version 1.0. (See accompanying
 # file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-from phylanx.ast import Phylanx
 import numpy as np
+from phylanx import Phylanx, PhylanxSession
+
+PhylanxSession(1)
 
 
 # This function is never called, it just makes Flake 8 quiet
@@ -29,8 +31,7 @@ try:
     def bad_kernel(a):
         return numpy.shape()
 
-    raise Exception(
-        "Should fail because numpy.shape doesn't exist")
+    raise Exception("Should fail because numpy.shape doesn't exist")
 
 except LookupError:
     pass

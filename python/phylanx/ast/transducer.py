@@ -18,19 +18,22 @@ from phylanx.exceptions import InvalidDecoratorArgumentError
 
 def Phylanx(__phylanx_arg=None, **kwargs):
     class __PhylanxDecorator(object):
-        targets = {'PhySL': PhySL, 'OpenSCoP': OpenSCoP}
-
         def __init__(self, f):
             """
             :function:f the decorated funtion.
             """
 
+            self.targets = {'PhySL': PhySL, 'OpenSCoP': OpenSCoP}
             self.set_target(kwargs.get('target'))
             kwargs['fglobals'] = f.__globals__
 
             # get the source of the function and remover the decorator.
             src = inspect.getsource(f)
             src = re.sub(r'^\s*@\w+.*\n', '', src)
+
+            # Strip off indentation if the function
+            # is not defined at top level.
+            src = re.sub(r'^\s*', '', src)
 
             # Generate the Python AST
             tree = ast.parse(src)
@@ -43,10 +46,9 @@ def Phylanx(__phylanx_arg=None, **kwargs):
         def set_target(self, target):
             """Set the target backend. By default it is set to PhySL."""
             if target:
+                if target not in self.targets:
+                    raise NotImplementedError("Unknown target: %s." % target)
                 self.target = target
-                if self.target not in __PhylanxDecorator.targets:
-                    raise NotImplementedError(
-                        "Unknown target: %s." % self.target)
             else:
                 self.target = 'PhySL'
 
